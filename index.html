@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Highway Rush: Desvío Mortal</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      background: #0b0e14;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 520px;
+      max-height: 900px;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.25);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #111;
+    }
+
+    /* UI Overlays */
+    .hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.85);
+    }
+
+    .hud-box {
+      background: rgba(13, 20, 36, 0.75);
+      border: 1px solid rgba(0, 242, 254, 0.4);
+      border-radius: 8px;
+      padding: 6px 12px;
+      backdrop-filter: blur(4px);
+    }
+
+    .hud-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #00f2fe;
+      margin-bottom: 2px;
+    }
+
+    .hud-value {
+      font-size: 18px;
+      font-weight: 800;
+      font-family: monospace;
+      color: #fff;
+    }
+
+    /* Detour Alert Banner */
+    #detour-banner {
+      position: absolute;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.95), rgba(245, 158, 11, 0.95), rgba(239, 68, 68, 0.95));
+      border: 2px solid #fff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: center;
+      z-index: 15;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.85);
+      animation: pulseAlert 0.7s infinite alternate;
+      display: none;
+      pointer-events: none;
+    }
+
+    @keyframes pulseAlert {
+      from { transform: translateX(-50%) scale(0.98); box-shadow: 0 0 15px rgba(239, 68, 68, 0.7); }
+      to { transform: translateX(-50%) scale(1.02); box-shadow: 0 0 35px rgba(245, 158, 11, 1); }
+    }
+
+    #detour-banner h2 {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      text-shadow: 0 2px 4px #000;
+    }
+
+    #detour-banner .timer-bar-wrap {
+      width: 100%;
+      height: 8px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    #detour-banner .timer-bar {
+      height: 100%;
+      width: 100%;
+      background: #fff;
+      transition: width 0.1s linear;
+    }
+
+    #detour-banner .subtext {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 2px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* On-Screen Touch Controls */
+    #touch-controls {
+      position: absolute;
+      bottom: 15px;
+      left: 0;
+      right: 0;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      pointer-events: auto;
+    }
+
+    .touch-btn {
+      width: 76px;
+      height: 76px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 2px solid rgba(0, 242, 254, 0.6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 32px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 0.1s, background-color 0.1s;
+    }
+
+    .touch-btn:active {
+      transform: scale(0.9);
+      background: rgba(0, 242, 254, 0.4);
+      border-color: #fff;
+    }
+
+    .touch-center-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .touch-btn-small {
+      width: 58px;
+      height: 58px;
+      font-size: 20px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 2px solid rgba(245, 158, 11, 0.6);
+    }
+
+    .touch-btn-small:active {
+      background: rgba(245, 158, 11, 0.4);
+    }
+
+    /* Modals / Screens */
+    .screen-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 10, 20, 0.88);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      z-index: 30;
+      text-align: center;
+    }
+
+    .screen-overlay h1 {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #00f2fe, #4facfe, #ff0844);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .screen-overlay p {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+      max-width: 360px;
+    }
+
+    .instructions-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+      width: 100%;
+      max-width: 340px;
+    }
+
+    .instructions-card strong {
+      color: #00f2fe;
+    }
+
+    .instructions-card .highlight {
+      color: #f59e0b;
+      font-weight: bold;
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      border: none;
+      color: #05101a;
+      font-size: 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 14px 40px;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.9);
+    }
+
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+
+    .top-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+      z-index: 25;
+    }
+
+    .mini-btn {
+      background: rgba(13, 20, 36, 0.8);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 8px;
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #exit-notice {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 32px;
+      font-weight: 900;
+      text-align: center;
+      text-transform: uppercase;
+      color: #10b981;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 0 0 40px #000;
+      pointer-events: none;
+      z-index: 28;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+      opacity: 0;
+    }
+
+    #exit-notice.show {
+      transform: translate(-50%, -50%) scale(1.1);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-box">
+      <div class="hud-title">Puntuación</div>
+      <div class="hud-value" id="hud-score">0</div>
+    </div>
+    <div class="hud-box" style="margin-left: 8px;">
+      <div class="hud-title">Canal Actual</div>
+      <div class="hud-value" id="hud-lane" style="color: #4facfe;">2</div>
+    </div>
+    <div class="hud-box" style="margin-left: auto; margin-right: 48px;">
+      <div class="hud-title">Desvío en</div>
+      <div class="hud-value" id="hud-next-detour" style="color: #f59e0b;">30s</div>
+    </div>
+  </div>
+
+  <div class="top-controls">
+    <button class="mini-btn" id="btn-sound" title="Alternar Sonido">🔊</button>
+  </div>
+
+  <!-- Detour Warning Banner -->
+  <div id="detour-banner">
+    <h2>⚠️ ¡ALERTA DE DESVÍO! ⚠️</h2>
+    <div style="font-weight: 800; font-size: 14px; color: #fff;">
+      ¡CÁMBIATE AL <span style="background:#000; color:#00f2fe; padding:2px 6px; border-radius:4px;">CANAL 1</span> O AL <span style="background:#000; color:#00f2fe; padding:2px 6px; border-radius:4px;">CANAL 4</span>!
+    </div>
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="detour-timer-bar"></div>
+    </div>
+    <div class="subtext">
+      <span>TOMAR SALIDA</span>
+      <span id="detour-time-left">7.0s</span>
+    </div>
+  </div>
+
+  <div id="exit-notice">¡DESVÍO COMPLETADO! +500</div>
+
+  <!-- Touch Controls for Mobile -->
+  <div id="touch-controls">
+    <button class="touch-btn" id="btn-left" aria-label="Mover a la Izquierda">◀</button>
+    <div class="touch-center-group">
+      <button class="touch-btn touch-btn-small" id="btn-down" aria-label="Frenar">▼</button>
+      <button class="touch-btn touch-btn-small" id="btn-up" aria-label="Acelerar">▲</button>
+    </div>
+    <button class="touch-btn" id="btn-right" aria-label="Mover a la Derecha">▶</button>
+  </div>
+
+  <!-- Start Screen -->
+  <div class="screen-overlay" id="start-screen">
+    <h1>HIGHWAY RUSH</h1>
+    <p style="font-size: 15px; color:#00f2fe; font-weight:600;">Desvío Mortal en la Autopista</p>
+    <div class="instructions-card">
+      🚘 <strong>Tu Carro:</strong> Muévete entre los <strong>4 canales</strong>.<br>
+      🏍️ <strong>Peligro:</strong> ¡Motos agresivas invaden tu canal hacia ti a gran velocidad!<br>
+      ⚠️ <strong>Mecánica Especial:</strong> Cada <span class="highlight">30 segundos</span> aparece un aviso de desvío. ¡Tienes que estar en el <span class="highlight">CANAL 1</span> (izq) o en el <span class="highlight">CANAL 4</span> (der) antes de que venza el tiempo o te estrellarás contra la división de la autopista!<br>
+      🎮 <strong>Controles:</strong> Flechas ◄ y ► (o A/D) en PC, o botones táctiles en pantalla.
+    </div>
+    <button class="btn-action" id="btn-start">JUGAR AHORA</button>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div class="screen-overlay" id="game-over-screen" style="display: none;">
+    <h1 style="background: linear-gradient(135deg, #ff0844, #ffb199); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">¡CHOQUE MORTAL!</h1>
+    <p id="game-over-reason" style="color: #f87171; font-weight: bold; margin-bottom: 12px;"></p>
+    <div class="instructions-card" style="text-align: center;">
+      <div style="font-size: 13px; color: #94a3b8; text-transform: uppercase;">Puntaje Final</div>
+      <div style="font-size: 32px; font-weight: 900; color: #00f2fe; margin-bottom: 8px;" id="final-score">0</div>
+      <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Récord Histórico</div>
+      <div style="font-size: 20px; font-weight: 800; color: #fbbf24;" id="high-score">0</div>
+      <div style="margin-top: 8px; font-size: 12px; color: #a5f3fc;" id="exits-taken">Desvíos superados: 0</div>
+    </div>
+    <button class="btn-action" id="btn-restart">REINTENTAR</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // --- AUDIO SYNTHESIZER (Web Audio API) ---
+  class SoundFX {
+    constructor() {
+      this.ctx = null;
+      this.muted = false;
+    }
+
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    playLaneChange() {
+      if (this.muted || !this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(260, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(480, this.ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.1);
+    }
+
+    playMotorWarning() {
+      if (this.muted || !this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(320, this.ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.2);
+    }
+
+    playAlarm() {
+      if (this.muted || !this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+      osc.frequency.setValueAtTime(600, this.ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.25);
+    }
+
+    playSuccess() {
+      if (this.muted || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      [440, 554, 659, 880].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.25);
+      });
+    }
+
+    playCrash() {
+      if (this.muted || !this.ctx) return;
+      const bufferSize = this.ctx.sampleRate * 0.7;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(900, this.ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.7);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.7);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      noise.start();
+      noise.stop(this.ctx.currentTime + 0.7);
+    }
+  }
+
+  const sfx = new SoundFX();
+
+  // --- GAME SETUP & CONSTANTS ---
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const container = document.getElementById('game-container');
+
+  const hudScore = document.getElementById('hud-score');
+  const hudLane = document.getElementById('hud-lane');
+  const hudNextDetour = document.getElementById('hud-next-detour');
+  const detourBanner = document.getElementById('detour-banner');
+  const detourTimerBar = document.getElementById('detour-timer-bar');
+  const detourTimeLeft = document.getElementById('detour-time-left');
+  const exitNotice = document.getElementById('exit-notice');
+
+  const startScreen = document.getElementById('start-screen');
+  const gameOverScreen = document.getElementById('game-over-screen');
+  const gameOverReason = document.getElementById('game-over-reason');
+  const finalScoreEl = document.getElementById('final-score');
+  const highScoreEl = document.getElementById('high-score');
+  const exitsTakenEl = document.getElementById('exits-taken');
+
+  const btnStart = document.getElementById('btn-start');
+  const btnRestart = document.getElementById('btn-restart');
+  const btnSound = document.getElementById('btn-sound');
+
+  // Touch control elements
+  const btnLeft = document.getElementById('btn-left');
+  const btnRight = document.getElementById('btn-right');
+  const btnUp = document.getElementById('btn-up');
+  const btnDown = document.getElementById('btn-down');
+
+  // Highway Geometry
+  const TOTAL_LANES = 4;
+  let roadLeft = 0;
+  let roadWidth = 0;
+  let laneWidth = 0;
+  const laneCenters = [0, 0, 0, 0];
+
+  function resizeCanvas() {
+    const rect = container.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    // Road takes center 86% of width, leaving shoulders
+    const shoulderRatio = 0.08;
+    roadLeft = canvas.width * shoulderRatio;
+    roadWidth = canvas.width * (1 - shoulderRatio * 2);
+    laneWidth = roadWidth / TOTAL_LANES;
+
+    for (let i = 0; i < TOTAL_LANES; i++) {
+      laneCenters[i] = roadLeft + laneWidth * i + laneWidth / 2;
+    }
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // --- GAME STATE ---
+  let gameState = 'START'; // 'START' | 'PLAYING' | 'GAMEOVER'
+  let score = 0;
+  let exitsCount = 0;
+  let highScore = parseInt(localStorage.getItem('rush_highscore') || '0', 10);
+
+  let roadOffset = 0;
+  let baseSpeed = 440; // px per second
+  let currentSpeed = baseSpeed;
+  let targetSpeed = baseSpeed;
+
+  // Detour cycle: Detour occurs every 30 seconds
+  const DETOUR_INTERVAL = 30; // seconds
+  const DETOUR_DURATION = 7.0; // seconds warning before barrier arrives
+  let detourTimer = DETOUR_INTERVAL;
+  let detourActive = false;
+  let detourRemaining = DETOUR_DURATION;
+  let detourBarrierY = -2000; // barrier position on screen
+  let barrierApproaching = false;
+  let barrierActiveLanes = [1, 2]; // 0-indexed: lanes 1 & 2 (which are channels 2 and 3) are blocked!
+
+  // Particles
+  let particles = [];
+  let screenShake = 0;
+
+  // --- PLAYER OBJECT ---
+  const player = {
+    lane: 1, // 0..3 (represents lanes 1..4)
+    targetLane: 1,
+    x: 0,
+    y: 0,
+    width: 36,
+    height: 64,
+    color: '#00f2fe',
+    tilt: 0,
+    turnSpeed: 14,
+    drawBlink: 0,
+
+    reset() {
+      this.lane = 1;
+      this.targetLane = 1;
+      this.x = laneCenters[1];
+      this.y = canvas.height - 140;
+      this.tilt = 0;
+    },
+
+    changeLane(delta) {
+      if (gameState !== 'PLAYING') return;
+      const next = this.targetLane + delta;
+      if (next >= 0 && next < TOTAL_LANES) {
+        this.targetLane = next;
+        this.lane = next;
+        sfx.playLaneChange();
+        spawnSparks(this.x, this.y + this.height/2, 6, '#00f2fe');
+      }
+    },
+
+    update(dt) {
+      // Smooth interpolation to target lane center
+      const targetX = laneCenters[this.targetLane];
+      const dx = targetX - this.x;
+      this.x += dx * Math.min(1, this.turnSpeed * dt);
+      this.tilt = (dx / (laneWidth || 1)) * 0.45;
+
+      // Keep inside bounds
+      this.y = canvas.height - 140;
+
+      // HUD lane number: 1-indexed
+      hudLane.textContent = (this.targetLane + 1).toString();
+      if (this.targetLane === 0 || this.targetLane === 3) {
+        hudLane.style.color = '#10b981'; // safe green for detour
+      } else {
+        hudLane.style.color = detourActive ? '#f87171' : '#4facfe';
+      }
+    },
+
+    draw(ctx) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.tilt * 0.5);
+
+      const w = this.width;
+      const h = this.height;
+
+      // Headlight beams
+      const beamGrad = ctx.createLinearGradient(0, -h/2, 0, -h/2 - 140);
+      beamGrad.addColorStop(0, 'rgba(0, 242, 254, 0.45)');
+      beamGrad.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+
+      ctx.fillStyle = beamGrad;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.35, -h/2);
+      ctx.lineTo(-w * 1.2, -h/2 - 140);
+      ctx.lineTo(w * 1.2, -h/2 - 140);
+      ctx.lineTo(w * 0.35, -h/2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.beginPath();
+      ctx.roundRect(-w/2 + 2, -h/2 + 4, w, h, 8);
+      ctx.fill();
+
+      // Car Body
+      const carGrad = ctx.createLinearGradient(-w/2, 0, w/2, 0);
+      carGrad.addColorStop(0, '#00c6ff');
+      carGrad.addColorStop(0.5, '#0072ff');
+      carGrad.addColorStop(1, '#0048aa');
+
+      ctx.fillStyle = carGrad;
+      ctx.beginPath();
+      ctx.roundRect(-w/2, -h/2, w, h, 8);
+      ctx.fill();
+
+      // Wheels
+      ctx.fillStyle = '#111';
+      ctx.fillRect(-w/2 - 3, -h/2 + 8, 4, 14);
+      ctx.fillRect(w/2 - 1, -h/2 + 8, 4, 14);
+      ctx.fillRect(-w/2 - 3, h/2 - 20, 4, 14);
+      ctx.fillRect(w/2 - 1, h/2 - 20, 4, 14);
+
+      // Windshield & Roof
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(-w/2 + 4, -h/2 + 14, w - 8, 16, 4);
+      ctx.fill();
+
+      // Rear glass
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(-w/2 + 5, h/2 - 22, w - 10, 10, 3);
+      ctx.fill();
+
+      // Roof stripe
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-2, -h/2 + 10, 4, h - 22);
+
+      // Headlights (glow)
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = '#00f2fe';
+      ctx.shadowBlur = 12;
+      ctx.fillRect(-w/2 + 4, -h/2 + 2, 7, 4);
+      ctx.fillRect(w/2 - 11, -h/2 + 2, 7, 4);
+
+      // Taillights
+      ctx.fillStyle = '#ff1744';
+      ctx.shadowColor = '#ff1744';
+      ctx.shadowBlur = 10;
+      ctx.fillRect(-w/2 + 4, h/2 - 4, 8, 3);
+      ctx.fillRect(w/2 - 12, h/2 - 4, 8, 3);
+
+      ctx.restore();
+    }
+  };
+
+  // --- MOTORCYCLE ENEMIES ---
+  // Fast, slim, weaves across lanes actively towards the player
+  class Motorcycle {
+    constructor() {
+      this.reset();
+    }
+
+    reset() {
+      this.lane = Math.floor(Math.random() * TOTAL_LANES);
+      this.targetLane = this.lane;
+      this.x = laneCenters[this.lane];
+      this.y = -100 - Math.random() * 300;
+      this.width = 20;
+      this.height = 44;
+
+      // Speed relative to road scrolling: they move downward quickly
+      this.speed = currentSpeed * (0.8 + Math.random() * 0.45);
+
+      // Aggressive lane switching towards the player
+      this.laneSwitchTimer = 0.5 + Math.random() * 1.2;
+      this.turnSpeed = 10 + Math.random() * 6; // very fast lane switch
+      this.color = Math.random() > 0.5 ? '#ff0055' : '#ff9900';
+      this.riderColor = '#ffffff';
+      this.tilt = 0;
+      this.passed = false;
+      this.hornPlayed = false;
+    }
+
+    update(dt) {
+      this.y += this.speed * dt;
+
+      // AI: Periodically target player's lane or adjacent lane to cut them off
+      this.laneSwitchTimer -= dt;
+      if (this.laneSwitchTimer <= 0) {
+        this.laneSwitchTimer = 0.9 + Math.random() * 1.5;
+
+        // Tendency to move aggressively towards player's lane!
+        let diff = player.targetLane - this.targetLane;
+        if (diff !== 0) {
+          // 75% chance to move closer to player
+          if (Math.random() < 0.75) {
+            const step = diff > 0 ? 1 : -1;
+            this.targetLane = Math.max(0, Math.min(TOTAL_LANES - 1, this.targetLane + step));
+            this.lane = this.targetLane;
+            if (!this.hornPlayed && Math.abs(this.y - player.y) < 320) {
+              sfx.playMotorWarning();
+              this.hornPlayed = true;
+            }
+          }
+        } else {
+          // If already in player's lane, sometimes shift abruptly or stay
+          if (Math.random() < 0.3) {
+            const step = Math.random() > 0.5 ? 1 : -1;
+            this.targetLane = Math.max(0, Math.min(TOTAL_LANES - 1, this.targetLane + step));
+            this.lane = this.targetLane;
+          }
+        }
+      }
+
+      // Smooth horizontal position towards lane
+      const targetX = laneCenters[this.targetLane];
+      const dx = targetX - this.x;
+      this.x += dx * Math.min(1, this.turnSpeed * dt);
+      this.tilt = (dx / (laneWidth || 1)) * 0.7;
+
+      // Spawn faint exhaust trail
+      if (Math.random() < 0.4) {
+        particles.push(new Particle(this.x, this.y - this.height/2, '#555', 0.2, 2, 20));
+      }
+    }
+
+    draw(ctx) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.tilt * 0.4);
+
+      const w = this.width;
+      const h = this.height;
+
+      // Headlight beam (pointing down because coming toward player)
+      const beamGrad = ctx.createLinearGradient(0, h/2, 0, h/2 + 90);
+      beamGrad.addColorStop(0, 'rgba(255, 230, 100, 0.45)');
+      beamGrad.addColorStop(1, 'rgba(255, 230, 100, 0.0)');
+      ctx.fillStyle = beamGrad;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.3, h/2);
+      ctx.lineTo(-w * 1.5, h/2 + 90);
+      ctx.lineTo(w * 1.5, h/2 + 90);
+      ctx.lineTo(w * 0.3, h/2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillRect(-w/2, -h/2 + 2, w, h);
+
+      // Bike Body (Chassis)
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.roundRect(-w/2 + 4, -h/2, w - 8, h, 6);
+      ctx.fill();
+
+      // Front & Rear Wheels (Tires)
+      ctx.fillStyle = '#111';
+      ctx.fillRect(-3, -h/2 - 2, 6, 10); // Rear wheel
+      ctx.fillRect(-3, h/2 - 8, 6, 12);  // Front wheel
+
+      // Handlebars
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(-w/2, h/2 - 12, w, 3);
+
+      // Rider Helmet & Body
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(0, -2, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Helmet visor
+      ctx.fillStyle = '#00f2fe';
+      ctx.fillRect(-4, 0, 8, 3);
+
+      // Rider Shoulders
+      ctx.fillStyle = this.riderColor;
+      ctx.beginPath();
+      ctx.roundRect(-8, -10, 16, 7, 3);
+      ctx.fill();
+
+      // Front Headlight
+      ctx.fillStyle = '#fffb96';
+      ctx.shadowColor = '#fffb96';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(0, h/2, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  let motorcycles = [];
+  const MAX_MOTORCYCLES = 4;
+
+  function initMotorcycles() {
+    motorcycles = [];
+    for (let i = 0; i < 2; i++) {
+      const m = new Motorcycle();
+      m.y = -150 - i * 320;
+      motorcycles.push(m);
+    }
+  }
+
+  // --- PARTICLES ---
+  class Particle {
+    constructor(x, y, color, speed, size, life = 30) {
+      this.x = x;
+      this.y = y;
+      this.color = color;
+      this.vx = (Math.random() - 0.5) * speed * 2;
+      this.vy = (Math.random() - 0.5) * speed * 2;
+      this.size = size;
+      this.maxLife = life;
+      this.life = life;
+    }
+
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.life--;
+    }
+
+    draw(ctx) {
+      const alpha = Math.max(0, this.life / this.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function spawnSparks(x, y, count = 12, color = '#ffbe0b') {
+    for (let i = 0; i < count; i++) {
+      particles.push(new Particle(x, y, color, 3.5, 2.5 + Math.random() * 2, 25));
+    }
+  }
+
+  function spawnExplosion(x, y) {
+    for (let i = 0; i < 45; i++) {
+      const colors = ['#ff0055', '#ff9900', '#ffea00', '#ffffff'];
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      particles.push(new Particle(x, y, c, 7.5, 3 + Math.random() * 4, 45));
+    }
+    screenShake = 18;
+  }
+
+  // --- COLLISION DETECTION ---
+  function checkCollision(r1, r2) {
+    const marginX = 8;
+    const marginY = 8;
+    return (
+      Math.abs(r1.x - r2.x) < (r1.width / 2 + r2.width / 2 - marginX) &&
+      Math.abs(r1.y - r2.y) < (r1.height / 2 + r2.height / 2 - marginY)
+    );
+  }
+
+  // --- GAME OVER LOGIC ---
+  function triggerGameOver(reason) {
+    if (gameState === 'GAMEOVER') return;
+    gameState = 'GAMEOVER';
+    sfx.playCrash();
+    spawnExplosion(player.x, player.y);
+
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem('rush_highscore', highScore.toString());
+    }
+
+    gameOverReason.textContent = reason;
+    finalScoreEl.textContent = score.toLocaleString();
+    highScoreEl.textContent = highScore.toLocaleString();
+    exitsTakenEl.textContent = `Desvíos tomados con éxito: ${exitsCount}`;
+
+    setTimeout(() => {
+      gameOverScreen.style.display = 'flex';
+      detourBanner.style.display = 'none';
+    }, 600);
+  }
+
+  // --- GAME START / RESET ---
+  function startGame() {
+    sfx.init();
+    gameState = 'PLAYING';
+    score = 0;
+    exitsCount = 0;
+    currentSpeed = baseSpeed;
+    targetSpeed = baseSpeed;
+    detourTimer = DETOUR_INTERVAL;
+    detourActive = false;
+    detourRemaining = DETOUR_DURATION;
+    barrierApproaching = false;
+    detourBarrierY = -2000;
+    particles = [];
+
+    player.reset();
+    initMotorcycles();
+
+    startScreen.style.display = 'none';
+    gameOverScreen.style.display = 'none';
+    detourBanner.style.display = 'none';
+    exitNotice.classList.remove('show');
+  }
+
+  // --- CONTROLS / INPUT ---
+  window.addEventListener('keydown', (e) => {
+    sfx.init();
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      player.changeLane(-1);
+    } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      player.changeLane(1);
+    } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+      targetSpeed = baseSpeed * 1.35;
+    } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+      targetSpeed = baseSpeed * 0.7;
+    } else if (e.key === ' ' || e.key === 'Enter') {
+      if (gameState === 'START' || gameState === 'GAMEOVER') {
+        startGame();
+      }
+    }
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+      targetSpeed = baseSpeed;
+    }
+  });
+
+  // Touch handlers
+  function setupTouchBtn(btn, onDown, onUp) {
+    const startHandler = (e) => {
+      e.preventDefault();
+      sfx.init();
+      if (onDown) onDown();
+    };
+    const endHandler = (e) => {
+      e.preventDefault();
+      if (onUp) onUp();
+    };
+    btn.addEventListener('touchstart', startHandler, { passive: false });
+    btn.addEventListener('touchend', endHandler, { passive: false });
+    btn.addEventListener('mousedown', startHandler);
+    btn.addEventListener('mouseup', endHandler);
+  }
+
+  setupTouchBtn(btnLeft, () => player.changeLane(-1));
+  setupTouchBtn(btnRight, () => player.changeLane(1));
+  setupTouchBtn(btnUp, () => { targetSpeed = baseSpeed * 1.35; }, () => { targetSpeed = baseSpeed; });
+  setupTouchBtn(btnDown, () => { targetSpeed = baseSpeed * 0.7; }, () => { targetSpeed = baseSpeed; });
+
+  // Direct swipe / tap on canvas
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  canvas.addEventListener('touchstart', (e) => {
+    sfx.init();
+    if (e.touches.length > 0) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (gameState !== 'PLAYING') return;
+    if (e.changedTouches.length > 0) {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.abs(dx) > 35) {
+        player.changeLane(dx > 0 ? 1 : -1);
+      } else if (Math.abs(dy) < 30) {
+        // Simple tap: check if tapped left or right of car
+        const rect = canvas.getBoundingClientRect();
+        const tapX = e.changedTouches[0].clientX - rect.left;
+        if (tapX < player.x) {
+          player.changeLane(-1);
+        } else {
+          player.changeLane(1);
+        }
+      }
+    }
+  }, { passive: true });
+
+  // Buttons on overlays
+  btnStart.addEventListener('click', startGame);
+  btnRestart.addEventListener('click', startGame);
+
+  btnSound.addEventListener('click', () => {
+    sfx.init();
+    sfx.muted = !sfx.muted;
+    btnSound.textContent = sfx.muted ? '🔇' : '🔊';
+  });
+
+  // --- DETOUR SYSTEM ---
+  function showSuccessNotice() {
+    exitNotice.classList.add('show');
+    sfx.playSuccess();
+    setTimeout(() => {
+      exitNotice.classList.remove('show');
+    }, 1800);
+  }
+
+  function updateDetourLogic(dt) {
+    if (!detourActive) {
+      detourTimer -= dt;
+      hudNextDetour.textContent = `${Math.ceil(Math.max(0, detourTimer))}s`;
+
+      if (detourTimer <= 0) {
+        // Activate Detour Warning!
+        detourActive = true;
+        detourRemaining = DETOUR_DURATION;
+        detourBanner.style.display = 'block';
+        sfx.playAlarm();
+      }
+    } else {
+      // Detour warning countdown is ticking
+      detourRemaining -= dt;
+      const progress = Math.max(0, detourRemaining / DETOUR_DURATION);
+      detourTimerBar.style.width = `${progress * 100}%`;
+      detourTimeLeft.textContent = `${Math.max(0, detourRemaining).toFixed(1)}s`;
+
+      // Flashing alert beep
+      if (Math.floor(detourRemaining * 4) % 2 === 0 && Math.random() < 0.15) {
+        sfx.playAlarm();
+      }
+
+      // Barrier begins to scroll onto the screen in the last 2 seconds
+      if (detourRemaining <= 2.2 && !barrierApproaching) {
+        barrierApproaching = true;
+        detourBarrierY = -120;
+      }
+
+      if (barrierApproaching) {
+        // Barrier scrolls toward the player with the road speed
+        detourBarrierY += currentSpeed * dt * 1.1;
+
+        // Check barrier collision with player
+        // Channels 2 and 3 (index 1 and 2) are blocked!
+        // Only Lane 1 (index 0) and Lane 4 (index 3) are open exits!
+        const barrierHeight = 44;
+        if (detourBarrierY + barrierHeight >= player.y - player.height/2 &&
+            detourBarrierY - barrierHeight <= player.y + player.height/2) {
+          if (player.targetLane === 1 || player.targetLane === 2) {
+            triggerGameOver('¡Te estrellaste contra la división central por no tomar el desvío!');
+            return;
+          }
+        }
+
+        // Passed the barrier successfully!
+        if (detourBarrierY > canvas.height + 60) {
+          detourActive = false;
+          barrierApproaching = false;
+          detourBanner.style.display = 'none';
+          detourTimer = DETOUR_INTERVAL;
+          exitsCount++;
+          score += 500;
+          showSuccessNotice();
+          // Increase difficulty slightly
+          baseSpeed = Math.min(650, baseSpeed + 25);
+        }
+      }
+
+      // If timer hits 0 and barrier somehow didn't catch, fail-safe check
+      if (detourRemaining <= 0 && !barrierApproaching) {
+        if (player.targetLane === 1 || player.targetLane === 2) {
+          triggerGameOver('¡No estabas en el Canal 1 o 4 cuando terminó el tiempo de desvío!');
+        } else {
+          detourActive = false;
+          detourBanner.style.display = 'none';
+          detourTimer = DETOUR_INTERVAL;
+          exitsCount++;
+          score += 500;
+          showSuccessNotice();
+        }
+      }
+    }
+  }
+
+  // --- DRAWING HIGHWAY & DETOUR FORK ---
+  function drawHighway() {
+    // Shoulders
+    ctx.fillStyle = '#0a101d';
+    ctx.fillRect(0, 0, roadLeft, canvas.height);
+    ctx.fillRect(roadLeft + roadWidth, 0, canvas.width - (roadLeft + roadWidth), canvas.height);
+
+    // Guard rails
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(roadLeft - 8, 0, 8, canvas.height);
+    ctx.fillRect(roadLeft + roadWidth, 0, 8, canvas.height);
+
+    // Road asphalt
+    ctx.fillStyle = '#181e28';
+    ctx.fillRect(roadLeft, 0, roadWidth, canvas.height);
+
+    // Shoulder reflectors (blinking neon lights scrolling)
+    const reflectorSpacing = 40;
+    const refOffset = roadOffset % reflectorSpacing;
+    for (let y = -reflectorSpacing + refOffset; y < canvas.height + reflectorSpacing; y += reflectorSpacing) {
+      // Left shoulder yellow reflector
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(roadLeft - 6, y, 4, 8);
+      // Right shoulder red reflector
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(roadLeft + roadWidth + 2, y, 4, 8);
+    }
+
+    // Lane dividers (3 dashed lines for 4 lanes)
+    ctx.lineWidth = 3;
+    ctx.setLineDash([26, 22]);
+    ctx.lineDashOffset = -roadOffset;
+
+    for (let i = 1; i < TOTAL_LANES; i++) {
+      const lx = roadLeft + i * laneWidth;
+      // Center dividing line is double or yellow if in detour alert
+      if (i === 2) {
+        ctx.strokeStyle = detourActive ? '#ef4444' : '#e2e8f0';
+      } else {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      }
+      ctx.beginPath();
+      ctx.moveTo(lx, 0);
+      ctx.lineTo(lx, canvas.height);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]); // Reset dash
+
+    // Draw Lane Numbers at top and bottom faintly on asphalt
+    ctx.font = '900 18px monospace';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < TOTAL_LANES; i++) {
+      const cx = laneCenters[i];
+      // Color lanes 1 & 4 special during detour
+      const isDetourLane = (i === 0 || i === 3);
+      if (detourActive) {
+        ctx.fillStyle = isDetourLane ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.35)';
+      } else {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      }
+      ctx.fillText(`C${i + 1}`, cx, 65);
+      ctx.fillText(`C${i + 1}`, cx, canvas.height - 35);
+    }
+
+    // Overhead highway detour signs or side exit signs
+    if (detourActive) {
+      // Left exit sign
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.roundRect(4, 110, roadLeft - 8, 50, 6);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '900 11px sans-serif';
+      ctx.fillText('SALIDA', roadLeft / 2, 130);
+      ctx.fillText('CANAL 1', roadLeft / 2, 146);
+
+      // Right exit sign
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.roundRect(roadLeft + roadWidth + 4, 110, roadLeft - 8, 50, 6);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '900 11px sans-serif';
+      ctx.fillText('SALIDA', canvas.width - roadLeft / 2, 130);
+      ctx.fillText('CANAL 4', canvas.width - roadLeft / 2, 146);
+    }
+  }
+
+  // Draw Detour Barrier & Diverter (blocks lanes 2 & 3 / indices 1 & 2)
+  function drawDetourBarrier() {
+    if (!barrierApproaching) return;
+
+    const startX = roadLeft + laneWidth; // Starts at edge of Lane 2
+    const totalBarrierWidth = laneWidth * 2; // Covers lanes 2 & 3
+    const by = detourBarrierY;
+
+    ctx.save();
+
+    // Fork Concrete Island
+    ctx.fillStyle = '#334155';
+    ctx.beginPath();
+    ctx.moveTo(startX, by);
+    ctx.lineTo(startX + totalBarrierWidth, by);
+    ctx.lineTo(startX + totalBarrierWidth - 10, by + 40);
+    ctx.lineTo(startX + 10, by + 40);
+    ctx.closePath();
+    ctx.fill();
+
+    // Striped Hazard Construction Barrier
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    const stripeWidth = 14;
+    for (let x = startX; x < startX + totalBarrierWidth; x += stripeWidth * 2) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(x, by + 4, stripeWidth, 24);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x + stripeWidth, by + 4, stripeWidth, 24);
+    }
+
+    // Warning text & Flashing Hazard Strobe Lights
+    ctx.fillStyle = '#fff';
+    ctx.font = '900 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⛔ CERRADO - TOMA CANAL 1 O 4 ⛔', startX + totalBarrierWidth / 2, by + 21);
+
+    // Flashing lights
+    const flash = Math.sin(Date.now() * 0.02) > 0;
+    ctx.fillStyle = flash ? '#ef4444' : '#fbbf24';
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(startX + 12, by + 16, 6, 0, Math.PI * 2);
+    ctx.arc(startX + totalBarrierWidth - 12, by + 16, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Big Diverter Arrows pointing outward toward Lane 1 and Lane 4
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#10b981';
+    // Arrow Left to Lane 1
+    ctx.beginPath();
+    ctx.moveTo(startX - 18, by + 16);
+    ctx.lineTo(startX - 6, by + 6);
+    ctx.lineTo(startX - 6, by + 26);
+    ctx.closePath();
+    ctx.fill();
+    // Arrow Right to Lane 4
+    ctx.beginPath();
+    ctx.moveTo(startX + totalBarrierWidth + 18, by + 16);
+    ctx.lineTo(startX + totalBarrierWidth + 6, by + 6);
+    ctx.lineTo(startX + totalBarrierWidth + 6, by + 26);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // --- MAIN LOOP ---
+  let lastTime = performance.now();
+
+  function gameLoop(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+
+    // Smooth speed transition
+    currentSpeed += (targetSpeed - currentSpeed) * 4 * dt;
+
+    if (gameState === 'PLAYING') {
+      roadOffset += currentSpeed * dt;
+      score += Math.floor(currentSpeed * dt * 0.25);
+      hudScore.textContent = score.toLocaleString();
+
+      // Update Player
+      player.update(dt);
+
+      // Update Detour Mechanism
+      updateDetourLogic(dt);
+
+      // Spawn more motorcycles as score increases
+      const activeLimit = Math.min(MAX_MOTORCYCLES, 2 + Math.floor(score / 1500));
+      while (motorcycles.length < activeLimit) {
+        motorcycles.push(new Motorcycle());
+      }
+
+      // Update Motorcycles
+      for (let i = motorcycles.length - 1; i >= 0; i--) {
+        const m = motorcycles[i];
+        m.update(dt);
+
+        // Check Collision with Player
+        if (checkCollision(player, m)) {
+          triggerGameOver('¡Chocaste de frente contra una moto agresiva!');
+          break;
+        }
+
+        // Check Collision with Detour Barrier (if barrier is on screen, bikes in lane 2 & 3 crash or divert)
+        if (barrierApproaching && (m.targetLane === 1 || m.targetLane === 2)) {
+          if (Math.abs(m.y - detourBarrierY) < 30) {
+            spawnExplosion(m.x, m.y);
+            sfx.playCrash();
+            motorcycles.splice(i, 1);
+            continue;
+          }
+        }
+
+        // Passed off screen
+        if (m.y > canvas.height + 120) {
+          m.reset();
+        }
+      }
+    }
+
+    // Update Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      particles[i].update();
+      if (particles[i].life <= 0) {
+        particles.splice(i, 1);
+      }
+    }
+
+    // Screen Shake decay
+    let sx = 0;
+    let sy = 0;
+    if (screenShake > 0) {
+      sx = (Math.random() - 0.5) * screenShake;
+      sy = (Math.random() - 0.5) * screenShake;
+      screenShake *= 0.9;
+      if (screenShake < 0.5) screenShake = 0;
+    }
+
+    // --- RENDER ---
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.translate(sx, sy);
+
+    drawHighway();
+    drawDetourBarrier();
+
+    // Draw Motorcycles
+    for (const m of motorcycles) {
+      m.draw(ctx);
+    }
+
+    // Draw Player
+    if (gameState === 'PLAYING' || gameState === 'START') {
+      player.draw(ctx);
+    }
+
+    // Draw Particles
+    for (const p of particles) {
+      p.draw(ctx);
+    }
+
+    ctx.restore();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Initial player position
+  player.reset();
+  requestAnimationFrame(gameLoop);
+
+})();
+</script>
+
+</body>
+</html>
