@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>CARACAS FIGHTER II — Turbo Edition</title>
   <style>
     :root {
@@ -15,10 +15,19 @@
       --text: #eef2ff;
       --muted: #93a0c2;
     }
-    * { box-sizing: border-box; user-select: none; }
-    body {
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
       margin: 0;
-      min-height: 100vh;
+      padding: 0;
+      width: 100%;
+      min-height: 100dvh;
+      overscroll-behavior: none;
       background: radial-gradient(circle at top, #1b2238 0%, var(--bg) 70%);
       color: var(--text);
       font-family: 'Courier New', Courier, monospace;
@@ -26,9 +35,12 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 12px;
+    }
+    body {
+      padding: 10px;
     }
     .arcade-shell {
+      position: relative;
       width: 100%;
       max-width: 980px;
       background: var(--panel);
@@ -36,34 +48,38 @@
       border-radius: 10px;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), inset 0 0 0 2px #0a0d16;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     .top-bar {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      padding: 8px 14px;
+      gap: 6px;
+      padding: 8px 12px;
       background: linear-gradient(90deg, #161d2f, #1d253d, #161d2f);
       border-bottom: 2px solid var(--border);
+      z-index: 20;
     }
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       font-weight: 900;
-      letter-spacing: 1px;
-      font-size: 15px;
+      letter-spacing: 0.8px;
+      font-size: 14px;
       color: var(--gold);
       text-shadow: 2px 2px 0 #000;
     }
     .tricolor-pill {
       display: inline-flex;
-      width: 24px;
-      height: 12px;
+      width: 22px;
+      height: 11px;
       border-radius: 2px;
       overflow: hidden;
       border: 1px solid #000;
+      flex-shrink: 0;
     }
     .tricolor-pill span:nth-child(1) { flex: 1; background: var(--gold); }
     .tricolor-pill span:nth-child(2) { flex: 1; background: var(--blue); }
@@ -73,18 +89,19 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     button {
       font-family: inherit;
       font-weight: 800;
-      font-size: 12px;
-      padding: 6px 11px;
+      font-size: 11px;
+      padding: 6px 9px;
       border-radius: 5px;
       border: 2px solid #3c4a70;
       background: #222b45;
       color: var(--text);
       cursor: pointer;
+      touch-action: manipulation;
       transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
     }
     button:hover { background: #2c3859; border-color: var(--gold); }
@@ -105,12 +122,162 @@
       width: 100%;
       aspect-ratio: 16 / 9;
       background: #000;
+      touch-action: none;
     }
     canvas {
       display: block;
       width: 100%;
       height: 100%;
       image-rendering: crisp-edges;
+      touch-action: none;
+    }
+
+    /* =========================================================
+       MOBILE VIRTUAL ARCADE CONTROLS
+       ========================================================= */
+    .touch-controls {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, #101523 0%, #090c15 100%);
+      border-top: 2px solid var(--border);
+      touch-action: none;
+    }
+    body.touch-active .touch-controls {
+      display: flex;
+    }
+    body.touch-active .controls-footer {
+      display: none;
+    }
+
+    /* 8-Way D-Pad */
+    .dpad {
+      position: relative;
+      width: 148px;
+      height: 148px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, #1e2740 0%, #101626 72%);
+      border: 3px solid #3a486e;
+      box-shadow: inset 0 4px 14px rgba(0, 0, 0, 0.7), 0 6px 16px rgba(0, 0, 0, 0.5);
+      touch-action: none;
+      flex-shrink: 0;
+    }
+    .dpad-cross {
+      position: absolute;
+      inset: 14px;
+      pointer-events: none;
+    }
+    .dpad-dir {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      color: #6b7ba6;
+      background: #171f34;
+      border: 1px solid #2f3c61;
+      border-radius: 6px;
+      transition: background 0.06s, color 0.06s;
+    }
+    .dpad-dir.on {
+      background: var(--gold);
+      color: #000;
+      border-color: #fff;
+    }
+    .dpad-up { top: 0; left: 50%; transform: translateX(-50%); }
+    .dpad-down { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .dpad-left { left: 0; top: 50%; transform: translateY(-50%); }
+    .dpad-right { right: 0; top: 50%; transform: translateY(-50%); }
+
+    .dpad-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 52px;
+      height: 52px;
+      margin-left: -26px;
+      margin-top: -26px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #4d5e8c, #1d263f);
+      border: 2px solid #93a8db;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65);
+      pointer-events: none;
+      transition: transform 0.04s linear;
+    }
+
+    /* Right-side Arcade Action Buttons */
+    .action-cluster {
+      position: relative;
+      width: 176px;
+      height: 148px;
+      flex-shrink: 0;
+      touch-action: none;
+    }
+    .act-btn {
+      position: absolute;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.78);
+      color: #fff;
+      font-family: inherit;
+      font-weight: 900;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.05;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.65), 0 8px 16px rgba(0, 0, 0, 0.45);
+      touch-action: none;
+      padding: 0;
+    }
+    .act-btn span.sub {
+      font-size: 9px;
+      opacity: 0.85;
+      letter-spacing: 0.5px;
+    }
+    .act-btn.pressed {
+      transform: translateY(3px) scale(0.95);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.75);
+      filter: brightness(1.25);
+    }
+    .btn-punch {
+      width: 68px;
+      height: 68px;
+      left: 4px;
+      bottom: 12px;
+      font-size: 13px;
+      background: radial-gradient(circle at 30% 30%, #ef4444, #991b1b);
+    }
+    .btn-kick {
+      width: 68px;
+      height: 68px;
+      right: 4px;
+      top: 14px;
+      font-size: 13px;
+      background: radial-gradient(circle at 30% 30%, #3b82f6, #1e40af);
+    }
+    .btn-special {
+      width: 58px;
+      height: 58px;
+      left: 56px;
+      top: 0;
+      font-size: 11px;
+      color: #111;
+      background: radial-gradient(circle at 30% 30%, #fde047, #d97706);
+      border-color: #fff7ed;
+    }
+
+    .touch-hint {
+      flex: 1;
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.4;
+      padding: 0 4px;
     }
 
     .controls-footer {
@@ -145,8 +312,75 @@
       font-weight: bold;
       font-size: 11px;
     }
+
     @media (max-width: 760px) {
+      body {
+        padding: 0;
+        justify-content: flex-start;
+      }
+      .arcade-shell {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        min-height: 100dvh;
+      }
+      .brand { font-size: 12px; }
+      .top-bar { padding: 6px 8px; }
+      button { font-size: 10px; padding: 5px 7px; }
       .controls-footer { grid-template-columns: 1fr; }
+      .touch-hint { display: none; }
+    }
+
+    /* Phone Landscape: Fullscreen Canvas + Translucent Overlay Pad */
+    @media (max-height: 540px) and (orientation: landscape) {
+      body { padding: 0; }
+      .arcade-shell {
+        height: 100dvh;
+        max-width: 100vw;
+        border: none;
+        border-radius: 0;
+      }
+      .top-bar {
+        padding: 4px 10px;
+      }
+      .brand { font-size: 11px; }
+      button { font-size: 10px; padding: 3px 6px; }
+      .canvas-wrap {
+        flex: 1;
+        aspect-ratio: auto;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      canvas {
+        max-height: 100%;
+        width: auto;
+        max-width: 100%;
+        aspect-ratio: 16 / 9;
+      }
+      body.touch-active .touch-controls {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: transparent;
+        border-top: none;
+        padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+        pointer-events: none;
+        z-index: 30;
+      }
+      body.touch-active .dpad,
+      body.touch-active .action-cluster {
+        pointer-events: auto;
+        opacity: 0.78;
+      }
+      .dpad { width: 124px; height: 124px; }
+      .dpad-knob { width: 42px; height: 42px; margin-left: -21px; margin-top: -21px; }
+      .dpad-dir { width: 28px; height: 28px; font-size: 13px; }
+      .action-cluster { width: 152px; height: 124px; }
+      .btn-punch, .btn-kick { width: 58px; height: 58px; font-size: 11px; }
+      .btn-special { width: 50px; height: 50px; font-size: 10px; left: 49px; }
     }
   </style>
 </head>
@@ -155,11 +389,12 @@
     <div class="top-bar">
       <div class="brand">
         <span class="tricolor-pill"><span></span><span></span><span></span></span>
-        <span>CARACAS FIGHTER II: HYPER EDITION</span>
+        <span>CARACAS FIGHTER II</span>
       </div>
       <div class="toolbar">
         <button id="btnCpuToggle" class="cpu-on" title="Toggle CPU AI for Player 2 (Tab)">P2: CPU AI [ON]</button>
         <button id="btnDifficulty" title="Cycle CPU AI Difficulty">AI: NORMAL</button>
+        <button id="btnPad" title="Toggle On-Screen Mobile Controls">PAD: AUTO</button>
         <button id="btnSound" class="active" title="Toggle Retro Synth Audio (M)">SFX: ON</button>
         <button id="btnMusic" class="active" title="Toggle Arcade Beat">BGM: ON</button>
         <button id="btnRestart" title="Restart Match (R)">NEW MATCH</button>
@@ -168,6 +403,29 @@
 
     <div class="canvas-wrap">
       <canvas id="game" width="960" height="540"></canvas>
+    </div>
+
+    <!-- ON-SCREEN MOBILE ARCADE CONTROLS -->
+    <div class="touch-controls" id="touchControls">
+      <div class="dpad" id="dpad">
+        <div class="dpad-cross">
+          <div class="dpad-dir dpad-up" id="dirUp">▲</div>
+          <div class="dpad-dir dpad-down" id="dirDown">▼</div>
+          <div class="dpad-dir dpad-left" id="dirLeft">◀</div>
+          <div class="dpad-dir dpad-right" id="dirRight">▶</div>
+        </div>
+        <div class="dpad-knob" id="dpadKnob"></div>
+      </div>
+
+      <div class="touch-hint">
+        SLIDE ↓ → FORWARD + PUNCH<br>OR TAP ★ SPECIAL!<br>HOLD BACK TO BLOCK
+      </div>
+
+      <div class="action-cluster">
+        <button type="button" class="act-btn btn-special" id="btnTouchSpecial">★<span class="sub">SPECIAL</span></button>
+        <button type="button" class="act-btn btn-punch" id="btnTouchPunch">PUNCH<span class="sub">F</span></button>
+        <button type="button" class="act-btn btn-kick" id="btnTouchKick">KICK<span class="sub">G</span></button>
+      </div>
     </div>
 
     <div class="controls-footer">
@@ -306,11 +564,10 @@
         updateBgm(dt, activeFight) {
           if (!this.bgmEnabled || !this.ctx || !activeFight) return;
           this.bgmTimer += dt;
-          const stepDur = 0.155; // ~96 bpm 16th-ish retro arcade groove
+          const stepDur = 0.155;
           if (this.bgmTimer < stepDur) return;
           this.bgmTimer -= stepDur;
 
-          // Latin-arcade bassline + chiptune lead stabs
           const bass = [110, 0, 110, 130.8, 146.8, 0, 130.8, 164.8, 110, 0, 110, 146.8, 164.8, 146.8, 130.8, 98];
           const lead = [440, 0, 523.2, 0, 587.3, 523.2, 440, 0, 392, 0, 440, 523.2, 659.2, 0, 587.3, 523.2];
           const idx = this.bgmStep % bass.length;
@@ -372,10 +629,13 @@
       const sfx = new SoundEngine();
 
       // =========================================================
-      // INPUT MANAGER
+      // INPUT MANAGER (KEYBOARD + MULTI-TOUCH VIRTUAL PAD)
       // =========================================================
       const keys = {};
       const justPressed = {};
+      const touchState = { left: false, right: false, up: false, down: false };
+      const touchJustPressed = { up: false, down: false, punch: false, kick: false, special: false };
+
       const GAME_KEYS = new Set([
         'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG',
         'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyK', 'KeyL',
@@ -402,9 +662,173 @@
         keys[e.code] = false;
       });
 
+      // Unlock mobile audio on first interaction anywhere
+      window.addEventListener('pointerdown', () => sfx.ensure(), { passive: true });
+
       function clearJustPressed() {
         for (const k in justPressed) delete justPressed[k];
+        touchJustPressed.up = false;
+        touchJustPressed.down = false;
+        touchJustPressed.punch = false;
+        touchJustPressed.kick = false;
+        touchJustPressed.special = false;
       }
+
+      // =========================================================
+      // TOUCH PAD AUTO-DETECTION & MULTI-TOUCH HANDLERS
+      // =========================================================
+      let padMode = 'auto'; // 'auto' | 'on' | 'off'
+      let detectedTouchDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+
+      function applyPadVisibility() {
+        const show = padMode === 'on' || (padMode === 'auto' && detectedTouchDevice);
+        document.body.classList.toggle('touch-active', show);
+      }
+
+      window.addEventListener('touchstart', () => {
+        if (!detectedTouchDevice) {
+          detectedTouchDevice = true;
+          applyPadVisibility();
+        }
+      }, { once: true, passive: true });
+
+      const dpad = document.getElementById('dpad');
+      const dpadKnob = document.getElementById('dpadKnob');
+      const dirEls = {
+        up: document.getElementById('dirUp'),
+        down: document.getElementById('dirDown'),
+        left: document.getElementById('dirLeft'),
+        right: document.getElementById('dirRight'),
+      };
+
+      let dpadPointerId = null;
+
+      function setDpadState(l, r, u, d, kx = 0, ky = 0) {
+        if (u && !touchState.up) touchJustPressed.up = true;
+        if (d && !touchState.down) touchJustPressed.down = true;
+        touchState.left = l;
+        touchState.right = r;
+        touchState.up = u;
+        touchState.down = d;
+
+        dirEls.left.classList.toggle('on', l);
+        dirEls.right.classList.toggle('on', r);
+        dirEls.up.classList.toggle('on', u);
+        dirEls.down.classList.toggle('on', d);
+        dpadKnob.style.transform = `translate(${kx}px, ${ky}px)`;
+      }
+
+      function updateDpadFromPoint(clientX, clientY) {
+        const rect = dpad.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const maxR = rect.width * 0.32;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const dist = Math.hypot(dx, dy);
+
+        const clamped = Math.min(dist, maxR);
+        const angle = Math.atan2(dy, dx);
+        const kx = dist > 0 ? Math.cos(angle) * clamped : 0;
+        const ky = dist > 0 ? Math.sin(angle) * clamped : 0;
+
+        if (dist < rect.width * 0.11) {
+          setDpadState(false, false, false, false, kx, ky);
+          return;
+        }
+
+        const deg = (angle * 180) / Math.PI;
+        const r = deg > -67.5 && deg < 67.5;
+        const d = deg > 22.5 && deg < 157.5;
+        const l = deg > 112.5 || deg < -112.5;
+        const u = deg > -157.5 && deg < -22.5;
+        setDpadState(l, r, u, d, kx, ky);
+      }
+
+      dpad.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        sfx.ensure();
+        dpadPointerId = e.pointerId;
+        try { dpad.setPointerCapture(e.pointerId); } catch (_) {}
+        updateDpadFromPoint(e.clientX, e.clientY);
+      });
+
+      dpad.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== dpadPointerId) return;
+        e.preventDefault();
+        updateDpadFromPoint(e.clientX, e.clientY);
+      });
+
+      function releaseDpad(e) {
+        if (e.pointerId !== dpadPointerId) return;
+        dpadPointerId = null;
+        setDpadState(false, false, false, false, 0, 0);
+      }
+      dpad.addEventListener('pointerup', releaseDpad);
+      dpad.addEventListener('pointercancel', releaseDpad);
+      dpad.addEventListener('lostpointercapture', releaseDpad);
+
+      function bindActionButton(id, keyName) {
+        const btn = document.getElementById(id);
+        let activePointerId = null;
+        btn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          sfx.ensure();
+          activePointerId = e.pointerId;
+          try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+          btn.classList.add('pressed');
+          touchJustPressed[keyName] = true;
+        });
+        function release(e) {
+          if (e.pointerId !== activePointerId) return;
+          activePointerId = null;
+          btn.classList.remove('pressed');
+        }
+        btn.addEventListener('pointerup', release);
+        btn.addEventListener('pointercancel', release);
+        btn.addEventListener('lostpointercapture', release);
+      }
+      bindActionButton('btnTouchPunch', 'punch');
+      bindActionButton('btnTouchKick', 'kick');
+      bindActionButton('btnTouchSpecial', 'special');
+
+      // Direct Canvas Tap support for Title Screen & Rematch
+      canvas.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        sfx.ensure();
+        const rect = canvas.getBoundingClientRect();
+        const cx = ((e.clientX - rect.left) / rect.width) * W;
+        const cy = ((e.clientY - rect.top) / rect.height) * H;
+
+        if (game.state === 'TITLE') {
+          if (cx >= W / 2 - 170 && cx <= W / 2 + 170) {
+            if (cy >= 230 && cy <= 272) {
+              game.titleCursor = 0;
+              game.cpuEnabled = true;
+              syncToolbarButtons();
+              sfx.menuBlip();
+              startNewMatch();
+              return;
+            }
+            if (cy >= 284 && cy <= 326) {
+              game.titleCursor = 1;
+              game.cpuEnabled = false;
+              syncToolbarButtons();
+              sfx.menuBlip();
+              startNewMatch();
+              return;
+            }
+          }
+          // Tapping anywhere else starts the selected mode
+          game.cpuEnabled = game.titleCursor === 0;
+          syncToolbarButtons();
+          sfx.menuBlip();
+          startNewMatch();
+        } else if (game.state === 'MATCH_OVER' && game.stateTimer < 215) {
+          sfx.menuBlip();
+          startNewMatch();
+        }
+      });
 
       // =========================================================
       // CHARACTER ARCHETYPES
@@ -420,8 +844,8 @@
             skin: '#d99a6c',
             skinShade: '#b5744a',
             hair: '#1e1b18',
-            jacket: '#c8102e',      // Iconic red track jacket
-            jacketTrim: '#ffcc00',  // Gold trim
+            jacket: '#c8102e',
+            jacketTrim: '#ffcc00',
             sashBlue: '#0038a8',
             pants: '#1e2738',
             boots: '#111111',
@@ -442,9 +866,9 @@
           colors: {
             skin: '#f0bfa0',
             skinShade: '#d19777',
-            hair: '#c99b4a',        // Styled golden-blonde hair
-            jacket: '#f4f7fb',      // Crisp white blazer
-            jacketTrim: '#0038a8',  // Blue lapel accent
+            hair: '#c99b4a',
+            jacket: '#f4f7fb',
+            jacketTrim: '#0038a8',
             sashRed: '#cf142b',
             pants: '#1f293d',
             boots: '#e6ecf5',
@@ -463,7 +887,7 @@
       // =========================================================
       class Fighter {
         constructor(slot, archetype, x, facing) {
-          this.slot = slot; // 1 or 2
+          this.slot = slot;
           this.archetype = archetype;
           this.name = archetype.name;
           this.colors = archetype.colors;
@@ -472,14 +896,14 @@
           this.y = GROUND_Y;
           this.vx = 0;
           this.vy = 0;
-          this.facing = facing; // 1 = right, -1 = left
+          this.facing = facing;
 
           this.maxHp = 100;
           this.hp = 100;
-          this.trailHp = 100; // SF2 trailing red bar
+          this.trailHp = 100;
           this.roundsWon = 0;
 
-          this.state = 'idle'; // idle, walk, crouch, jump, attack, special, block, hitstun, knockdown, victory
+          this.state = 'idle';
           this.stateTimer = 0;
           this.animTime = 0;
           this.crouching = false;
@@ -489,15 +913,11 @@
           this.comboCount = 0;
           this.comboResetTimer = 0;
 
-          // Quarter-circle input buffer for Down -> Forward + Punch
-          this.motionHistory = []; // { dir: 'D'|'DF'|'F'|'N', t: ms }
+          this.motionHistory = [];
           this.lastMotionDir = '';
 
-          // CPU AI state
           this.aiTimer = 0;
           this.aiAction = 'idle';
-          this.aiHoldJump = false;
-          this.aiHoldCrouch = false;
         }
 
         isGrounded() {
@@ -507,12 +927,7 @@
         getHurtbox() {
           const w = 52;
           const h = (this.crouching || this.state === 'crouch') ? 76 : (this.state === 'knockdown' ? 38 : 122);
-          return {
-            x: this.x - w / 2,
-            y: this.y - h,
-            w,
-            h
-          };
+          return { x: this.x - w / 2, y: this.y - h, w, h };
         }
 
         getActiveHitbox() {
@@ -537,28 +952,17 @@
           if (code !== this.lastMotionDir) {
             this.lastMotionDir = code;
             this.motionHistory.push({ dir: code, t: now });
-            // Keep recent ~450ms
-            this.motionHistory = this.motionHistory.filter(m => now - m.t <= 450);
+            this.motionHistory = this.motionHistory.filter(m => now - m.t <= 480);
           }
         }
 
         hasQuarterCircleInput(now) {
-          // Checks Down -> (optional DF) -> Forward within 360ms
-          const recent = this.motionHistory.filter(m => now - m.t <= 380);
+          const recent = this.motionHistory.filter(m => now - m.t <= 420);
           let sawDown = false;
           for (let i = 0; i < recent.length; i++) {
             const d = recent[i].dir;
             if (d === 'D' || d === 'DF') sawDown = true;
             else if (sawDown && d === 'F') return true;
-          }
-          // Also allow ending on DF if player tapped Down then Forward+Punch fast
-          let dIdx = recent.findIndex(m => m.dir === 'D');
-          if (dIdx !== -1) {
-            for (let j = dIdx + 1; j < recent.length; j++) {
-              if (recent[j].dir === 'F' || recent[j].dir === 'DF') {
-                if (recent[j].dir === 'F') return true;
-              }
-            }
           }
           return false;
         }
@@ -607,7 +1011,7 @@
 
         startSpecial() {
           this.state = 'special';
-          this.stateTimer = 28; // frames
+          this.stateTimer = 28;
           this.crouching = false;
           this.vx = 0;
           this.specialSpawned = false;
@@ -619,12 +1023,13 @@
         readHumanInput() {
           if (this.slot === 1) {
             return {
-              left: !!keys['KeyA'],
-              right: !!keys['KeyD'],
-              up: !!keys['KeyW'],
-              down: !!keys['KeyS'],
-              punch: !!justPressed['KeyF'],
-              kick: !!justPressed['KeyG'],
+              left: !!keys['KeyA'] || touchState.left,
+              right: !!keys['KeyD'] || touchState.right,
+              up: !!keys['KeyW'] || touchState.up,
+              down: !!keys['KeyS'] || touchState.down,
+              punch: !!justPressed['KeyF'] || touchJustPressed.punch,
+              kick: !!justPressed['KeyG'] || touchJustPressed.kick,
+              special: touchJustPressed.special,
             };
           } else {
             return {
@@ -634,20 +1039,20 @@
               down: !!keys['ArrowDown'],
               punch: !!justPressed['KeyK'],
               kick: !!justPressed['KeyL'],
+              special: false,
             };
           }
         }
 
         computeCpuInput(opponent, projectiles) {
-          const inp = { left: false, right: false, up: false, down: false, punch: false, kick: false };
+          const inp = { left: false, right: false, up: false, down: false, punch: false, kick: false, special: false };
           const dist = Math.abs(this.x - opponent.x);
           const towardLeft = opponent.x < this.x;
 
-          const diffSetting = game.aiDifficulty; // 0: Easy, 1: Normal, 2: Hard
+          const diffSetting = game.aiDifficulty;
           const reactionChance = diffSetting === 0 ? 0.38 : diffSetting === 1 ? 0.68 : 0.9;
           const aggro = diffSetting === 0 ? 0.45 : diffSetting === 1 ? 0.72 : 0.92;
 
-          // Check incoming projectile threat
           const incomingProj = projectiles.find(p =>
             p.owner !== this &&
             Math.sign(p.vx) === Math.sign(this.x - p.x) &&
@@ -656,16 +1061,14 @@
 
           if (incomingProj && Math.random() < reactionChance) {
             if (Math.abs(this.x - incomingProj.x) > 125 && Math.random() < 0.48) {
-              inp.up = true; // Jump over projectile
+              inp.up = true;
               if (towardLeft) inp.left = true; else inp.right = true;
             } else {
-              // Hold back to block projectile
               if (towardLeft) inp.right = true; else inp.left = true;
             }
             return inp;
           }
 
-          // Block if opponent is attacking close
           if (
             (opponent.state === 'attack' || opponent.state === 'special') &&
             dist < 130 &&
@@ -722,7 +1125,6 @@
             inp.kick = true;
             this.aiAction = 'idle';
           } else if (this.aiAction === 'fireball' && this.isGrounded()) {
-            // Trigger clean special directly if not already in special/attack
             if (this.state === 'idle' || this.state === 'walk') {
               const hasOwnProj = projectiles.some(p => p.owner === this);
               if (!hasOwnProj) {
@@ -742,21 +1144,18 @@
             if (this.comboResetTimer === 0) this.comboCount = 0;
           }
 
-          // Smooth trailing HP bar
           if (this.trailHp > this.hp) {
             this.trailHp = Math.max(this.hp, this.trailHp - 0.38);
           } else {
             this.trailHp = this.hp;
           }
 
-          // Face opponent when grounded & idle/walking/crouching
           if (this.isGrounded() && (this.state === 'idle' || this.state === 'walk' || this.state === 'crouch' || this.state === 'block')) {
             if (Math.abs(opponent.x - this.x) > 8) {
               this.facing = opponent.x >= this.x ? 1 : -1;
             }
           }
 
-          // Handle fixed-duration states
           if (this.state === 'hitstun' || this.state === 'block') {
             this.stateTimer--;
             this.vx *= 0.84;
@@ -780,7 +1179,6 @@
           } else if (this.state === 'special') {
             this.stateTimer--;
             this.vx = 0;
-            // Spawn projectile on frame 10 of 28
             if (!this.specialSpawned && this.stateTimer <= 18) {
               this.specialSpawned = true;
               const px = this.x + this.facing * 54;
@@ -798,17 +1196,15 @@
             const forward = this.facing === 1 ? inp.right : inp.left;
             const back = this.facing === 1 ? inp.left : inp.right;
 
-            // Record directional motion for Quarter-Circle special
             this.recordDirection(inp.down, forward, now);
 
             if (this.isGrounded()) {
               this.crouching = inp.down;
 
-              // Check Special Move (Down -> Forward + Punch)
               const activeOwnProj = projectiles.some(p => p.owner === this);
-              if (inp.punch && !activeOwnProj && this.hasQuarterCircleInput(now)) {
+              if ((inp.special || (inp.punch && this.hasQuarterCircleInput(now))) && !activeOwnProj) {
                 this.startSpecial();
-              } else if (inp.punch) {
+              } else if (inp.punch || inp.special) {
                 this.vx = 0;
                 this.startAttack(this.crouching ? 'crouchPunch' : 'standPunch');
               } else if (inp.kick) {
@@ -834,8 +1230,7 @@
                 this.state = 'idle';
               }
             } else {
-              // Airborne attacks
-              if (inp.punch) this.startAttack('airPunch');
+              if (inp.punch || inp.special) this.startAttack('airPunch');
               else if (inp.kick) this.startAttack('airKick');
             }
           } else {
@@ -843,7 +1238,6 @@
             if (this.isGrounded() && this.state === 'walk') this.state = 'idle';
           }
 
-          // Physics
           this.x += this.vx;
           this.y += this.vy;
 
@@ -861,7 +1255,6 @@
             }
           }
 
-          // Clamp to stage boundaries
           this.x = Math.max(STAGE_LEFT, Math.min(STAGE_RIGHT, this.x));
         }
 
@@ -878,7 +1271,6 @@
               }
             : this.readHumanInput();
 
-          // If CPU, allow reactive block check directly when under attack
           let holdingBack = this.facing === 1 ? inp.left : inp.right;
           let holdingDown = inp.down;
 
@@ -895,7 +1287,7 @@
           if (!holdingBack) return false;
           if (attackHitType === 'low') return holdingDown;
           if (attackHitType === 'high') return !holdingDown;
-          return true; // 'mid' or 'projectile' blocked both standing & crouching back
+          return true;
         }
 
         takeHit(damage, hitstun, blockstun, knockback, hitType, attackerFacing, canControl, isProjectile = false) {
@@ -961,7 +1353,6 @@
           ctx.save();
           ctx.translate(this.x, this.y);
 
-          // Energy tail streaks
           for (let i = 1; i <= 4; i++) {
             ctx.fillStyle = projOuter;
             ctx.globalAlpha = 0.55 - i * 0.11;
@@ -971,7 +1362,6 @@
           }
           ctx.globalAlpha = 1;
 
-          // Outer plasma aura
           const pulse = 22 + Math.sin(this.age * 0.5) * 3;
           const grad = ctx.createRadialGradient(0, 0, 4, 0, 0, pulse);
           grad.addColorStop(0, projCore);
@@ -982,18 +1372,15 @@
           ctx.arc(0, 0, pulse, 0, Math.PI * 2);
           ctx.fill();
 
-          // Distinct thematic core icon
           ctx.fillStyle = projCore;
           ctx.strokeStyle = '#111';
           ctx.lineWidth = 2;
           if (this.owner.archetype.id === 'comandante') {
-            // Retro TV / Decree Emblem inside fireball
             ctx.fillRect(-11, -9, 22, 18);
             ctx.strokeRect(-11, -9, 22, 18);
             ctx.fillStyle = '#cf142b';
             ctx.fillRect(-7, -5, 14, 10);
           } else {
-            // Radiant Star / Ballot Emblem inside fireball
             ctx.beginPath();
             for (let i = 0; i < 10; i++) {
               const r = i % 2 === 0 ? 13 : 6;
@@ -1104,7 +1491,7 @@
       }
 
       // =========================================================
-      // PROCEDURAL FIGHTER RENDERER (Detailed Pixel/Vector Hybrid)
+      // PROCEDURAL FIGHTER RENDERER
       // =========================================================
       function drawLimb(ctx, x1, y1, x2, y2, thickness, color, outline = '#111') {
         ctx.save();
@@ -1130,27 +1517,23 @@
         const isComandante = f.archetype.id === 'comandante';
 
         ctx.save();
-        // Ground shadow
         const shadowScale = Math.max(0.45, 1 - (GROUND_Y - f.y) / 260);
         ctx.fillStyle = 'rgba(0,0,0,0.42)';
         ctx.beginPath();
         ctx.ellipse(f.x, GROUND_Y + 4, 34 * shadowScale, 9 * shadowScale, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Hit flash tint
         const hitFlash = f.state === 'hitstun' && f.stateTimer % 4 < 2;
 
         ctx.translate(f.x, f.y);
         ctx.scale(f.facing, 1);
 
-        // Knockdown horizontal pose
         if (f.state === 'knockdown') {
           ctx.translate(0, -18);
           ctx.rotate(-Math.PI / 2);
           ctx.translate(0, 26);
         }
 
-        // Compute dynamic joint poses
         const t = f.animTime;
         const bounce = f.state === 'idle' ? Math.sin(t * 0.16) * 2.8 : 0;
         const walkCycle = f.state === 'walk' ? Math.sin(t * 0.34) : 0;
@@ -1163,25 +1546,21 @@
         const shoulderY = -104 + crouchOffset + bounce;
         const headY = -124 + crouchOffset + bounce;
 
-        // Back Leg
         let bKneeX = -14 - walkCycle * 14;
         let bKneeY = -30 + crouchOffset * 0.45;
         let bFootX = -18 - walkCycle * 18;
         let bFootY = -4;
 
-        // Front Leg
         let fKneeX = 14 + walkCycle * 14;
         let fKneeY = -30 + crouchOffset * 0.45;
         let fFootX = 18 + walkCycle * 18;
         let fFootY = -4;
 
-        // Arms
         let bElbowX = -16, bElbowY = shoulderY + 18;
         let bHandX = -4, bHandY = shoulderY + 10;
         let fElbowX = 14, fElbowY = shoulderY + 14;
         let fHandX = 28, fHandY = shoulderY + 2;
 
-        // Pose overrides for Attacks / Special / Block / Jump / Victory
         if (f.state === 'jump') {
           bKneeX = -18; bKneeY = -42; bFootX = -24; bFootY = -18;
           fKneeX = 20;  fKneeY = -46; fFootX = 14;  fFootY = -20;
@@ -1194,7 +1573,6 @@
           bHandX = 14;  bHandY = shoulderY - 4;
         }
         if (f.state === 'special') {
-          // Iconic two-handed Hadouken thrust!
           const charge = f.stateTimer > 18;
           if (charge) {
             bElbowX = -24; bElbowY = hipY - 8; bHandX = -10; bHandY = hipY - 10;
@@ -1205,7 +1583,6 @@
           }
         }
         if (f.state === 'victory') {
-          // Raised victorious fist!
           fElbowX = 16; fElbowY = shoulderY - 18;
           fHandX = 18;  fHandY = headY - 28 + Math.sin(t * 0.25) * 3;
         }
@@ -1239,10 +1616,8 @@
           }
         }
 
-        // --- DRAW BACK ARM ---
         drawLimb(ctx, -4, shoulderY + 4, bElbowX, bElbowY, 13, c.jacket);
         drawLimb(ctx, bElbowX, bElbowY, bHandX, bHandY, 11, c.skin);
-        // Back glove/fist
         ctx.fillStyle = c.gloves;
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 2.5;
@@ -1251,24 +1626,20 @@
         ctx.fill();
         ctx.stroke();
 
-        // --- DRAW BACK LEG ---
         drawLimb(ctx, -6, hipY, bKneeX, bKneeY, 16, c.pants);
         drawLimb(ctx, bKneeX, bKneeY, bFootX, bFootY, 14, c.pants);
-        // Boot
         ctx.fillStyle = c.boots;
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 2.5;
         ctx.fillRect(bFootX - 9, bFootY - 6, 22, 11);
         ctx.strokeRect(bFootX - 9, bFootY - 6, 22, 11);
 
-        // --- DRAW FRONT LEG ---
         drawLimb(ctx, 6, hipY, fKneeX, fKneeY, 16, c.pants);
         drawLimb(ctx, fKneeX, fKneeY, fFootX, fFootY, 14, c.pants);
         ctx.fillStyle = c.boots;
         ctx.fillRect(fFootX - 9, fFootY - 6, 23, 11);
         ctx.strokeRect(fFootX - 9, fFootY - 6, 23, 11);
 
-        // --- DRAW TORSO (Jacket / Blazer) ---
         const torsoTop = shoulderY - 4;
         const torsoBot = hipY + 6;
         const torsoW = isComandante ? 40 : 34;
@@ -1286,7 +1657,6 @@
         ctx.stroke();
 
         if (isComandante) {
-          // Iconic tricolor presidential / track stripe & gold belt
           ctx.fillStyle = '#ffcc00';
           ctx.fillRect(-torsoW / 2 + 3, torsoTop + 2, 7, torsoBot - torsoTop - 4);
           ctx.fillStyle = '#0038a8';
@@ -1294,14 +1664,12 @@
           ctx.fillStyle = '#cf142b';
           ctx.fillRect(-torsoW / 2 + 16, torsoTop + 2, 5, torsoBot - torsoTop - 4);
 
-          // Gold belt & buckle
           ctx.fillStyle = '#111';
           ctx.fillRect(-torsoW / 2 + 3, torsoBot - 9, torsoW - 6, 7);
           ctx.fillStyle = '#ffcc00';
           ctx.fillRect(2, torsoBot - 10, 10, 9);
           ctx.strokeRect(2, torsoBot - 10, 10, 9);
         } else {
-          // White blazer lapels + V-neck dark blouse + tricolor ribbon scarf
           ctx.fillStyle = '#1f293d';
           ctx.beginPath();
           ctx.moveTo(-4, torsoTop + 2);
@@ -1310,7 +1678,6 @@
           ctx.closePath();
           ctx.fill();
 
-          // Tricolor neck ribbon / lapel pin
           ctx.fillStyle = '#ffcc00';
           ctx.fillRect(6, torsoTop + 10, 4, 8);
           ctx.fillStyle = '#0038a8';
@@ -1318,21 +1685,17 @@
           ctx.fillStyle = '#cf142b';
           ctx.fillRect(14, torsoTop + 10, 4, 8);
 
-          // Blazer buttons
           ctx.fillStyle = '#9aa8c7';
           ctx.fillRect(3, torsoBot - 18, 4, 4);
           ctx.fillRect(3, torsoBot - 10, 4, 4);
         }
 
-        // --- DRAW HEAD & CHARACTER DETAILS ---
         ctx.save();
         ctx.translate(2, headY);
 
-        // Neck
         ctx.fillStyle = c.skinShade;
         ctx.fillRect(-6, 10, 12, 10);
 
-        // Head shape
         ctx.fillStyle = hitFlash ? '#fff' : c.skin;
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 2.8;
@@ -1342,7 +1705,6 @@
         ctx.stroke();
 
         if (isComandante) {
-          // Slicked dark hair + sideburns
           ctx.fillStyle = c.hair;
           ctx.beginPath();
           ctx.roundRect(-16, -19, 31, 11, 4);
@@ -1350,16 +1712,13 @@
           ctx.stroke();
           ctx.fillRect(-15, -10, 6, 13);
 
-          // Thick expressive eyebrows
           ctx.fillStyle = '#111';
           ctx.fillRect(1, -5, 10, 3.5);
-          // Eye
           ctx.fillStyle = '#fff';
           ctx.fillRect(3, -1, 7, 4);
           ctx.fillStyle = '#111';
           ctx.fillRect(6, -1, 4, 4);
 
-          // ICONIC THICK MUSTACHE!
           ctx.fillStyle = '#191614';
           ctx.strokeStyle = '#000';
           ctx.lineWidth = 1.5;
@@ -1372,28 +1731,23 @@
           ctx.fill();
           ctx.stroke();
 
-          // Mouth expression
           if (f.state === 'attack' || f.state === 'special' || f.state === 'hitstun') {
             ctx.fillStyle = '#701212';
             ctx.fillRect(3, 10, 8, 4);
           }
         } else {
-          // LA LIBERTADORA: Voluminous golden-blonde hair + back waves
           ctx.fillStyle = c.hair;
           ctx.strokeStyle = '#111';
           ctx.lineWidth = 2.4;
-          // Back hair flowing down
           ctx.beginPath();
           ctx.roundRect(-20, -14, 14, 34, 6);
           ctx.fill();
           ctx.stroke();
-          // Top volume bangs
           ctx.beginPath();
           ctx.roundRect(-16, -21, 31, 12, 6);
           ctx.fill();
           ctx.stroke();
 
-          // Sharp determined eyes
           ctx.fillStyle = '#111';
           ctx.fillRect(2, -5, 9, 2.5);
           ctx.fillStyle = '#fff';
@@ -1401,7 +1755,6 @@
           ctx.fillStyle = '#1d4ed8';
           ctx.fillRect(6, -1, 3.5, 4.5);
 
-          // Nose & mouth
           ctx.fillStyle = c.skinShade;
           ctx.fillRect(12, 2, 3, 4);
           ctx.fillStyle = (f.state === 'attack' || f.state === 'special') ? '#8c1d2b' : '#b84a56';
@@ -1409,7 +1762,6 @@
         }
         ctx.restore();
 
-        // --- DRAW FRONT ARM ---
         drawLimb(ctx, 4, shoulderY + 4, fElbowX, fElbowY, 13, c.jacket);
         drawLimb(ctx, fElbowX, fElbowY, fHandX, fHandY, 11, c.skin);
         ctx.fillStyle = c.gloves;
@@ -1420,7 +1772,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // Block shield aura
         if (f.state === 'block') {
           ctx.strokeStyle = '#38bdf8';
           ctx.lineWidth = 3;
@@ -1434,7 +1785,6 @@
         ctx.restore();
       }
 
-      // Draw miniature procedural portrait in HUD
       function drawPortrait(ctx, archetype, x, y, flip) {
         const c = archetype.colors;
         ctx.save();
@@ -1444,11 +1794,9 @@
         ctx.fillStyle = '#1b243b';
         ctx.fillRect(-26, -26, 52, 52);
 
-        // Shoulders
         ctx.fillStyle = c.jacket;
         ctx.fillRect(-22, 8, 44, 18);
 
-        // Face
         ctx.fillStyle = c.skin;
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
@@ -1466,7 +1814,6 @@
           ctx.fillRect(2, -1, 6, 3);
           ctx.fillStyle = '#111';
           ctx.fillRect(4, -1, 3, 3);
-          // Mustache
           ctx.fillStyle = '#191614';
           ctx.fillRect(-3, 4, 16, 6);
         } else {
@@ -1501,7 +1848,6 @@
       }));
 
       function drawStage(ctx, tick) {
-        // Sky gradient (Caracas sunset)
         const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
         sky.addColorStop(0, '#161b47');
         sky.addColorStop(0.38, '#5b2266');
@@ -1510,18 +1856,15 @@
         ctx.fillStyle = sky;
         ctx.fillRect(0, 0, W, GROUND_Y);
 
-        // Retro setting sun behind El Ávila
         ctx.fillStyle = '#ffe066';
         ctx.beginPath();
         ctx.arc(W * 0.5, 225, 68, 0, Math.PI * 2);
         ctx.fill();
-        // Horizontal synthwave stripes on lower sun
         ctx.fillStyle = '#e06035';
         for (let sy = 232; sy < 290; sy += 11) {
           ctx.fillRect(W * 0.5 - 70, sy, 140, 4);
         }
 
-        // Drifting clouds
         ctx.fillStyle = 'rgba(255, 220, 185, 0.25)';
         for (let i = 0; i < 4; i++) {
           const cx = ((tick * 0.22 + i * 270) % (W + 180)) - 90;
@@ -1530,13 +1873,12 @@
           ctx.fillRect(cx + 18, cy - 10, 56, 12);
         }
 
-        // El Ávila Mountain Range silhouette
         ctx.fillStyle = '#25264a';
         ctx.beginPath();
         ctx.moveTo(0, 350);
         ctx.lineTo(130, 250);
         ctx.lineTo(260, 275);
-        ctx.lineTo(410, 200); // Pico Naiguatá / Humboldt
+        ctx.lineTo(410, 200);
         ctx.lineTo(560, 260);
         ctx.lineTo(720, 212);
         ctx.lineTo(860, 255);
@@ -1546,18 +1888,16 @@
         ctx.closePath();
         ctx.fill();
 
-        // Humboldt Hotel tower on mountaintop + Teleférico cable
         ctx.fillStyle = '#383a69';
         ctx.fillRect(403, 174, 14, 30);
         ctx.fillStyle = '#ffcc00';
         ctx.fillRect(406, 179, 3, 3);
         ctx.fillRect(411, 179, 3, 3);
 
-        // City Skyline (Parque Central towers + Plaza Altamira Obelisk + Miraflores columns)
         ctx.fillStyle = '#181d38';
         const buildings = [
           [20, 290, 55, 100], [85, 270, 46, 120], [140, 305, 58, 85],
-          [210, 235, 40, 155], [258, 235, 40, 155], // Parque Central twin towers
+          [210, 235, 40, 155], [258, 235, 40, 155],
           [320, 310, 80, 80],
           [560, 300, 75, 90], [655, 275, 50, 115], [770, 285, 65, 105], [855, 260, 62, 130]
         ];
@@ -1572,7 +1912,6 @@
           ctx.fillStyle = '#181d38';
         }
 
-        // Plaza Altamira Obelisk center-right
         ctx.fillStyle = '#2d3559';
         ctx.beginPath();
         ctx.moveTo(474, 390);
@@ -1583,29 +1922,23 @@
         ctx.closePath();
         ctx.fill();
 
-        // Swaying Tropical Palm Trees
         drawPalm(ctx, 56, 392, tick, 1);
         drawPalm(ctx, W - 56, 392, tick, -1);
 
-        // Plaza Balustrade Wall
         ctx.fillStyle = '#33293d';
         ctx.fillRect(0, 386, W, 16);
         ctx.fillStyle = '#4e3e59';
         ctx.fillRect(0, 384, W, 5);
 
-        // Animated Cheering Pixel Crowd
         for (const m of crowdMembers) {
           const hop = Math.abs(Math.sin(tick * 0.14 + m.phase)) * 6;
           const cy = 382 - hop;
-          // Body
           ctx.fillStyle = m.shirt;
           ctx.fillRect(m.x - 9, cy - 22, 18, 20);
-          // Head
           ctx.fillStyle = m.skin;
           ctx.fillRect(m.x - 6, cy - 33, 12, 11);
           ctx.fillStyle = '#111';
           ctx.fillRect(m.x - 6, cy - 35, 12, 4);
-          // Raised cheering arm or tiny flag
           const armY = cy - 26 - Math.sin(tick * 0.25 + m.phase) * 5;
           ctx.fillStyle = m.skin;
           ctx.fillRect(m.x + 8, armY, 5, 10);
@@ -1621,7 +1954,6 @@
           }
         }
 
-        // Cobblestone Arena Floor with perspective lines
         const floorGrad = ctx.createLinearGradient(0, 402, 0, H);
         floorGrad.addColorStop(0, '#5a4d5c');
         floorGrad.addColorStop(0.3, '#443a47');
@@ -1629,7 +1961,6 @@
         ctx.fillStyle = floorGrad;
         ctx.fillRect(0, 402, W, H - 402);
 
-        // Perspective tiles
         ctx.strokeStyle = 'rgba(0,0,0,0.35)';
         ctx.lineWidth = 2;
         for (let i = -8; i <= 8; i++) {
@@ -1673,7 +2004,6 @@
       // HUD & OVERLAYS
       // =========================================================
       function drawHud(ctx) {
-        // P1 & P2 Portraits
         drawPortrait(ctx, game.p1.archetype, 46, 48, false);
         drawPortrait(ctx, game.p2.archetype, W - 46, 48, true);
 
@@ -1683,7 +2013,6 @@
         const p2BarX = W - 82 - barW;
         const barY = 24;
 
-        // Health bar frames
         for (const [bx, fighter, alignRight] of [
           [p1BarX, game.p1, true],
           [p2BarX, game.p2, false]
@@ -1694,12 +2023,10 @@
           const trailW = (fighter.trailHp / fighter.maxHp) * barW;
           const hpW = (fighter.hp / fighter.maxHp) * barW;
 
-          // Trailing damage (red)
           ctx.fillStyle = '#e11d48';
           if (alignRight) ctx.fillRect(bx + (barW - trailW), barY, trailW, barH);
           else ctx.fillRect(bx, barY, trailW, barH);
 
-          // Active health (bright gold-yellow)
           const hpGrad = ctx.createLinearGradient(0, barY, 0, barY + barH);
           hpGrad.addColorStop(0, '#fff066');
           hpGrad.addColorStop(1, '#f59e0b');
@@ -1707,13 +2034,11 @@
           if (alignRight) ctx.fillRect(bx + (barW - hpW), barY, hpW, barH);
           else ctx.fillRect(bx, barY, hpW, barH);
 
-          // Border
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 3;
           ctx.strokeRect(bx, barY, barW, barH);
         }
 
-        // Fighter Names & Round Win Stars
         ctx.font = '900 15px "Courier New", monospace';
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#000';
@@ -1729,9 +2054,7 @@
         ctx.fillStyle = '#fff';
         ctx.fillText(p2Tag, p2BarX + barW, 68);
 
-        // Round Win Dots (Best of 3)
         for (let r = 0; r < 2; r++) {
-          // P1 dots
           ctx.fillStyle = r < game.p1.roundsWon ? '#ffcc00' : '#1f2937';
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
@@ -1740,7 +2063,6 @@
           ctx.fill();
           ctx.stroke();
 
-          // P2 dots
           ctx.fillStyle = r < game.p2.roundsWon ? '#ffcc00' : '#1f2937';
           ctx.beginPath();
           ctx.arc(p2BarX + 14 + r * 20, 64, 6, 0, Math.PI * 2);
@@ -1748,7 +2070,6 @@
           ctx.stroke();
         }
 
-        // 99-Second Center Timer
         ctx.fillStyle = '#0b1021';
         ctx.strokeStyle = '#ffcc00';
         ctx.lineWidth = 3;
@@ -1761,7 +2082,6 @@
         ctx.fillStyle = game.timer <= 15 ? '#ff4444' : '#ffcc00';
         ctx.fillText(timeStr, W / 2, 50);
 
-        // Combo Counters
         if (game.p1.comboCount >= 2) {
           ctx.textAlign = 'left';
           ctx.font = '900 22px "Courier New", monospace';
@@ -1789,7 +2109,7 @@
         ctx.fillText(mainText, W / 2, H / 2 - 14);
 
         if (subText) {
-          ctx.font = '900 22px "Courier New", monospace';
+          ctx.font = '900 20px "Courier New", monospace';
           ctx.lineWidth = 5;
           ctx.strokeText(subText, W / 2, H / 2 + 28);
           ctx.fillStyle = '#fff';
@@ -1816,7 +2136,6 @@
         ctx.fillStyle = '#38bdf8';
         ctx.fillText('PALACIO VS. PLAZA — HYPER EDITION', W / 2, 168);
 
-        // Mode options
         const modes = [
           { label: '1P VS CPU AI', cpu: true },
           { label: '2P LOCAL VERSUS', cpu: false }
@@ -1837,9 +2156,9 @@
 
         ctx.font = 'bold 15px "Courier New", monospace';
         ctx.fillStyle = '#e2e8f0';
-        ctx.fillText('USE ↑ / ↓ (OR W / S) TO SELECT — PRESS ENTER OR SPACE TO FIGHT!', W / 2, 412);
+        ctx.fillText('TAP AN OPTION OR PRESS ENTER / PUNCH TO FIGHT!', W / 2, 412);
         ctx.fillStyle = '#fbbf24';
-        ctx.fillText('SPECIAL MOVE: DOWN → FORWARD + PUNCH  |  HOLD BACK TO BLOCK', W / 2, 442);
+        ctx.fillText('SPECIAL: DOWN → FORWARD + PUNCH (OR ★ BUTTON) | BLOCK: HOLD BACK', W / 2, 442);
       }
 
       // =========================================================
@@ -1854,10 +2173,10 @@
       }
 
       const game = {
-        state: 'TITLE', // TITLE, INTRO, FIGHT, KO_SLOWMO, ROUND_END, MATCH_OVER
+        state: 'TITLE',
         titleCursor: 0,
         cpuEnabled: true,
-        aiDifficulty: 1, // 0 Easy, 1 Normal, 2 Hard
+        aiDifficulty: 1,
         roundNumber: 1,
         timer: 99,
         stateTimer: 0,
@@ -1940,7 +2259,6 @@
       }
 
       function handleProjectiles() {
-        // Projectile vs Projectile clash
         for (let i = 0; i < game.projectiles.length; i++) {
           for (let j = i + 1; j < game.projectiles.length; j++) {
             const a = game.projectiles[i];
@@ -1956,7 +2274,6 @@
           }
         }
 
-        // Projectile vs Opponent
         for (const p of game.projectiles) {
           if (!p.active) continue;
           const target = p.owner === game.p1 ? game.p2 : game.p1;
@@ -2019,7 +2336,7 @@
       }
 
       // =========================================================
-      // MAIN FRAME LOOP (60fps target)
+      // MAIN FRAME LOOP
       // =========================================================
       let lastTime = performance.now();
       let accumulator = 0;
@@ -2029,15 +2346,18 @@
         game.tick++;
 
         if (game.state === 'TITLE') {
-          if (justPressed['ArrowUp'] || justPressed['KeyW']) {
+          if (justPressed['ArrowUp'] || justPressed['KeyW'] || touchJustPressed.up) {
             game.titleCursor = 0;
             sfx.menuBlip();
           }
-          if (justPressed['ArrowDown'] || justPressed['KeyS']) {
+          if (justPressed['ArrowDown'] || justPressed['KeyS'] || touchJustPressed.down) {
             game.titleCursor = 1;
             sfx.menuBlip();
           }
-          if (justPressed['Enter'] || justPressed['Space'] || justPressed['KeyF'] || justPressed['KeyK']) {
+          if (
+            justPressed['Enter'] || justPressed['Space'] || justPressed['KeyF'] || justPressed['KeyK'] ||
+            touchJustPressed.punch || touchJustPressed.kick || touchJustPressed.special
+          ) {
             game.cpuEnabled = game.titleCursor === 0;
             syncToolbarButtons();
             sfx.menuBlip();
@@ -2059,7 +2379,6 @@
           return;
         }
 
-        // Slow-motion KO effect
         if (game.state === 'KO_SLOWMO') {
           game.stateTimer--;
           if (game.stateTimer % 2 === 0) {
@@ -2086,7 +2405,6 @@
           handleMeleeHit(game.p2, game.p1);
           handleProjectiles();
 
-          // 99-second round timer
           game.timer = Math.max(0, game.timer - 1 / 60);
           if (game.timer <= 0) {
             game.state = 'KO_SLOWMO';
@@ -2109,7 +2427,8 @@
           }
         } else if (game.state === 'MATCH_OVER') {
           game.stateTimer--;
-          if (justPressed['Enter'] || justPressed['Space'] || game.stateTimer <= 0) {
+          const rematchTap = game.stateTimer < 215 && (touchJustPressed.punch || touchJustPressed.kick || touchJustPressed.special);
+          if (justPressed['Enter'] || justPressed['Space'] || rematchTap || game.stateTimer <= 0) {
             startNewMatch();
           }
         }
@@ -2126,15 +2445,10 @@
         }
 
         drawStage(ctx, game.tick);
-
-        // Draw fighters
         drawFighter(ctx, game.p1);
         drawFighter(ctx, game.p2);
 
-        // Draw projectiles
         for (const p of game.projectiles) p.draw(ctx);
-
-        // Particles & Shout banners
         drawParticles(ctx);
 
         if (game.state === 'TITLE') {
@@ -2152,7 +2466,7 @@
           } else if (game.state === 'ROUND_END') {
             drawCenterAnnouncement(ctx, game.roundWinnerText, game.roundSubText, '#ffcc00');
           } else if (game.state === 'MATCH_OVER') {
-            drawCenterAnnouncement(ctx, game.roundWinnerText, `${game.roundSubText}  (PRESS ENTER FOR REMATCH)`, '#ffcc00');
+            drawCenterAnnouncement(ctx, game.roundWinnerText, `${game.roundSubText}  (TAP FOR REMATCH)`, '#ffcc00');
           }
         }
 
@@ -2176,6 +2490,7 @@
       // =========================================================
       const btnCpuToggle = document.getElementById('btnCpuToggle');
       const btnDifficulty = document.getElementById('btnDifficulty');
+      const btnPad = document.getElementById('btnPad');
       const btnSound = document.getElementById('btnSound');
       const btnMusic = document.getElementById('btnMusic');
       const btnRestart = document.getElementById('btnRestart');
@@ -2184,6 +2499,8 @@
         btnCpuToggle.textContent = game.cpuEnabled ? 'P2: CPU AI [ON]' : 'P2: HUMAN [2P]';
         btnCpuToggle.classList.toggle('cpu-on', game.cpuEnabled);
         btnDifficulty.textContent = ['AI: EASY', 'AI: NORMAL', 'AI: HARD'][game.aiDifficulty];
+        btnPad.textContent = `PAD: ${padMode.toUpperCase()}`;
+        btnPad.classList.toggle('active', padMode === 'on');
         btnSound.textContent = sfx.sfxEnabled ? 'SFX: ON' : 'SFX: OFF';
         btnSound.classList.toggle('active', sfx.sfxEnabled);
         btnMusic.textContent = sfx.bgmEnabled ? 'BGM: ON' : 'BGM: OFF';
@@ -2208,6 +2525,13 @@
         sfx.menuBlip();
         syncToolbarButtons();
       });
+      btnPad.addEventListener('click', () => {
+        const order = ['auto', 'on', 'off'];
+        padMode = order[(order.indexOf(padMode) + 1) % order.length];
+        sfx.menuBlip();
+        applyPadVisibility();
+        syncToolbarButtons();
+      });
       btnSound.addEventListener('click', toggleSound);
       btnMusic.addEventListener('click', () => {
         sfx.bgmEnabled = !sfx.bgmEnabled;
@@ -2219,6 +2543,7 @@
         startNewMatch();
       });
 
+      applyPadVisibility();
       syncToolbarButtons();
       requestAnimationFrame(frame);
     })();
